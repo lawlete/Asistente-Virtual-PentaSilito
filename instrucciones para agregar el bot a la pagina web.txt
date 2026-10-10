@@ -1,0 +1,80 @@
+sent you instructions to install the "ACA Silcheck / Pentatrack" AI agent from Chatbase on a website.
+
+Add this embed script immediately before the closing </body> tag on every page where the chat bubble should appear (a shared layout or template is the best place):
+
+<script>
+(function(){if(!window.chatbase||window.chatbase("getState")!=="initialized"){window.chatbase=(...arguments)=>{if(!window.chatbase.q){window.chatbase.q=[]}window.chatbase.q.push(arguments)};window.chatbase=new Proxy(window.chatbase,{get(target,prop){if(prop==="q"){return target.q}return(...args)=>target(prop,...args)}})}const onLoad=function(){const script=document.createElement("script");script.src="https://www.chatbase.co/embed.min.js";script.id="OviOy79LGOPSn0p5lWNNh";script.domain="www.chatbase.co";document.body.appendChild(script)};if(document.readyState==="complete"){onLoad()}else{window.addEventListener("load",onLoad)}})();
+</script>
+
+Keep the script exactly as provided. The id and domain identify the agent. After deploying, load the site and confirm the chat bubble appears in the corner of the page.
+
+Questions? see the https://www.chatbase.co/docs .
+
+
+
+
+Add the Chatbase AI chat bubble to my website.
+
+Add this embed script immediately before the closing </body> tag on every page where the chat bubble should appear (a shared layout or template is the best place):
+
+<script>
+(function(){if(!window.chatbase||window.chatbase("getState")!=="initialized"){window.chatbase=(...arguments)=>{if(!window.chatbase.q){window.chatbase.q=[]}window.chatbase.q.push(arguments)};window.chatbase=new Proxy(window.chatbase,{get(target,prop){if(prop==="q"){return target.q}return(...args)=>target(prop,...args)}})}const onLoad=function(){const script=document.createElement("script");script.src="https://www.chatbase.co/embed.min.js";script.id="OviOy79LGOPSn0p5lWNNh";script.domain="www.chatbase.co";document.body.appendChild(script)};if(document.readyState==="complete"){onLoad()}else{window.addEventListener("load",onLoad)}})();
+</script>
+
+Keep the script exactly as provided. The id and domain identify the agent. After deploying, load the site and confirm the chat bubble appears in the corner of the page.
+
+
+
+Website bubble
+Embed a floating chat bubble on any website.
+
+Send instructions via email
+Copy prompt
+
+https://aca.silchecksa.com/
+Enter each domain in a new line
+
+Save
+Widget setup
+Paste this code on your site to install the chat bubble.
+
+
+www.chatbase.co
+1
+2
+3
+<script>
+(function(){if(!window.chatbase||window.chatbase("getState")!=="initialized"){window.chatbase=(...arguments)=>{if(!window.chatbase.q){window.chatbase.q=[]}window.chatbase.q.push(arguments)};window.chatbase=new Proxy(window.chatbase,{get(target,prop){if(prop==="q"){return target.q}return(...args)=>target(prop,...args)}})}const onLoad=function(){const script=document.createElement("script");script.src="https://www.chatbase.co/embed.min.js";script.id="OviOy79LGOPSn0p5lWNNh";script.domain="www.chatbase.co";document.body.appendChild(script)};if(document.readyState==="complete"){onLoad()}else{window.addEventListener("load",onLoad)}})();
+</script>
+
+Copy
+Identity verification
+Secure your AI Agent by generating a JWT for each logged-in user and sending it to Chatbase. Read more in the Identity Verification Docs.
+
+
+vmjqyz5pairyz118snza3y83p9qvozb3
+
+Rotate
+Keep your secret key safe! Never commit it directly to your repository, client-side code, or anywhere a third party can find it.
+
+// --- SERVER CODE ---
+const jwt = require('jsonwebtoken');
+
+const secret = process.env.CHATBOT_IDENTITY_SECRET; // Your chatbase secret key (should be stored as a secret not in the code)
+
+const user = await getSignedInUser(); // Get the current user signed in to your site
+
+const token = jwt.sign(
+    {
+        user_id: user.id, // Your user's id
+        email: user.email, // User's email
+        stripe_accounts: user.stripe_accounts, // User's stripe accounts for stripe integration
+        // ... other custom attributes
+    },
+    secret,
+    { expiresIn: '1h' }
+);
+
+// --- CLIENT CODE ---
+const token = await getUserToken(); // Get the token from your server
+window.chatbase('identify', { token }); // identify the user with Chatbase
