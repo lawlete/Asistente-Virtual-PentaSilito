@@ -1,187 +1,122 @@
 /**
- * LOGICA DEL SIMULADOR ACA SILCHECK & QA PLAYGROUND PENTASILITO
+ * CARGADOR DINÁMICO DE CHATBASE (BURBUJA O IFRAME)
  */
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Elementos DOM
-  const perfilSelect = document.getElementById('perfilSelect');
-  const currentProfileName = document.getElementById('currentProfileName');
-  const btnOpenChat = document.getElementById('btnOpenChat');
-  const btnCloseChat = document.getElementById('btnCloseChat');
-  const btnCheckStatus = document.getElementById('btnCheckStatus');
-  const widgetStatusBadge = document.getElementById('widgetStatusBadge');
-  const copyToast = document.getElementById('copyFeedback');
-  const btnVerPlanFree = document.getElementById('btnVerPlanFree');
-  const planAnalysisSection = document.getElementById('planAnalysisSection');
+  const chatInput = document.getElementById('chatInput');
+  const btnCargar = document.getElementById('btnCargar');
+  const btnAbrirBurbuja = document.getElementById('btnAbrirBurbuja');
+  const iframeContainer = document.getElementById('iframeContainer');
+  const chatIframe = document.getElementById('chatIframe');
+  const statusText = document.getElementById('statusText');
+  const radioModes = document.querySelectorAll('input[name="viewMode"]');
 
-  // 1. Selector de Perfiles (Productor, Acopio, Embolsador, Reciclaje)
-  if (perfilSelect && currentProfileName) {
-    perfilSelect.addEventListener('change', (e) => {
-      const selectedText = perfilSelect.options[perfilSelect.selectedIndex].text.split(' ')[0];
-      currentProfileName.textContent = selectedText;
-      mostrarToast(`Perfil cambiado a: ${selectedText}`);
+  // Función para extraer el Bot ID limpio ya sea que peguen una URL o el ID solo
+  function extraerBotId(inputVal) {
+    if (!inputVal) return '';
+    let val = inputVal.trim();
+    // Si pegaron una URL de Chatbase (ej: https://www.chatbase.co/chatbot-iframe/ID o /chatbot/ID)
+    const match = val.match(/chatbase\.co\/(?:chatbot-iframe|chatbot|embed)\/([a-zA-Z0-9_-]+)/);
+    if (match && match[1]) {
+      return match[1];
+    }
+    // Si pegaron una URL con parámetro id=...
+    const urlMatch = val.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+    if (urlMatch && urlMatch[1]) {
+      return urlMatch[1];
+    }
+    // Si pasaron directamente el ID
+    return val;
+  }
+
+  // Cargar burbuja mediante script oficial
+  function cargarBurbuja(botId) {
+    if (!botId) return;
+
+    // Remover script anterior si existiera
+    const scriptExistente = document.getElementById('chatbase-script');
+    if (scriptExistente) {
+      scriptExistente.remove();
+    }
+
+    // Inicializar objeto chatbase si no existe
+    if (!window.chatbase || window.chatbase('getState') !== 'initialized') {
+      window.chatbase = (...arguments) => {
+        if (!window.chatbase.q) { window.chatbase.q = []; }
+        window.chatbase.q.push(arguments);
+      };
+      window.chatbase = new Proxy(window.chatbase, {
+        get(target, prop) {
+          if (prop === 'q') return target.q;
+          return (...args) => target(prop, ...args);
+        }
+      });
+    }
+
+    const script = document.createElement('script');
+    script.id = 'chatbase-script';
+    script.src = 'https://www.chatbase.co/embed.min.js';
+    script.setAttribute('id', botId);
+    script.setAttribute('domain', 'www.chatbase.co');
+    document.body.appendChild(script);
+
+    statusText.textContent = `Burbuja cargada para el ID: ${botId}`;
+    iframeContainer.style.display = 'none';
+  }
+
+  // Cargar en Iframe incrustado
+  function cargarIframe(botId) {
+    if (!botId) return;
+    const iframeUrl = `https://www.chatbase.co/chatbot-iframe/${botId}`;
+    chatIframe.src = iframeUrl;
+    iframeContainer.style.display = 'block';
+    statusText.textContent = `Ventana incrustada cargada (${botId})`;
+  }
+
+  // Aplicar selección
+  function aplicarCarga() {
+    const rawVal = chatInput.value;
+    const botId = extraerBotId(rawVal);
+
+    if (!botId) {
+      alert('Por favor ingresá un ID o URL válida de Chatbase.');
+      return;
+    }
+
+    const selectedMode = document.querySelector('input[name="viewMode"]:checked').value;
+
+    if (selectedMode === 'bubble') {
+      cargarBurbuja(botId);
+    } else {
+      cargarIframe(botId);
+    }
+  }
+
+  // Eventos
+  btnCargar.addEventListener('click', aplicarCarga);
+
+  chatInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      aplicarCarga();
+    }
+  });
+
+  radioModes.forEach(radio => {
+    radio.addEventListener('change', () => {
+      aplicarCarga();
     });
-  }
+  });
 
-  // 2. Control de API de Chatbase
-  function getChatbaseState() {
-    try {
-      if (typeof window.chatbase === 'function') {
-        const state = window.chatbase('getState');
-        return state || 'initialized';
-      }
-    } catch (err) {
-      console.warn('Error al consultar estado de Chatbase:', err);
-    }
-    return 'pending';
-  }
-
-  function actualizarEstadoWidget() {
-    const estado = getChatbaseState();
-    if (widgetStatusBadge) {
-      if (estado === 'initialized' || typeof window.chatbase === 'function') {
-        widgetStatusBadge.innerHTML = '<span class="dot-status active"></span> PentaSilito Conectado';
-      } else {
-        widgetStatusBadge.innerHTML = '<span class="dot-status"></span> Esperando script...';
-      }
-    }
-  }
-
-  // Verificar estado periódicamente en los primeros segundos
-  let checkCount = 0;
-  const statusInterval = setInterval(() => {
-    actualizarEstadoWidget();
-    checkCount++;
-    if (checkCount > 15) clearInterval(statusInterval);
-  }, 1000);
-
-  if (btnOpenChat) {
-    btnOpenChat.addEventListener('click', () => {
+  if (btnAbrirBurbuja) {
+    btnAbrirBurbuja.addEventListener('click', () => {
       if (typeof window.chatbase === 'function') {
         window.chatbase('open');
-        mostrarToast('Abriendo ventana de chat...');
       } else {
-        mostrarToast('El widget aún se está cargando...');
+        alert('La burbuja aún se está inicializando o está en modo ventana.');
       }
     });
   }
 
-  if (btnCloseChat) {
-    btnCloseChat.addEventListener('click', () => {
-      if (typeof window.chatbase === 'function') {
-        window.chatbase('close');
-        mostrarToast('Cerrando ventana de chat...');
-      }
-    });
-  }
-
-  if (btnCheckStatus) {
-    btnCheckStatus.addEventListener('click', () => {
-      actualizarEstadoWidget();
-      mostrarToast(`Estado del widget: ${getChatbaseState()}`);
-    });
-  }
-
-  // 3. Prompts Rápidos de Prueba (Copiar y abrir chat)
-  function copiarAlPortapapeles(texto) {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(texto).then(() => {
-        mostrarToast('¡Pregunta copiada! Pegala en la burbuja de PentaSilito.');
-      }).catch(() => {
-        copiarFallback(texto);
-      });
-    } else {
-      copiarFallback(texto);
-    }
-
-    // Abrir automáticamente la burbuja de chat para conveniencia del tester
-    if (typeof window.chatbase === 'function') {
-      window.chatbase('open');
-    }
-  }
-
-  function copiarFallback(texto) {
-    const textarea = document.createElement('textarea');
-    textarea.value = texto;
-    textarea.style.position = 'fixed';
-    textarea.style.opacity = '0';
-    document.body.appendChild(textarea);
-    textarea.select();
-    try {
-      document.execCommand('copy');
-      mostrarToast('¡Pregunta copiada! Pegala en la burbuja de PentaSilito.');
-    } catch (e) {
-      mostrarToast('Seleccioná el texto para copiarlo.');
-    }
-    document.body.removeChild(textarea);
-  }
-
-  function mostrarToast(mensaje) {
-    if (!copyToast) return;
-    copyToast.textContent = mensaje;
-    copyToast.classList.add('show');
-    setTimeout(() => {
-      copyToast.classList.remove('show');
-    }, 3200);
-  }
-
-  // Asignar eventos a los chips de prompts de prueba
-  document.querySelectorAll('.prompt-chip').forEach(chip => {
-    chip.addEventListener('click', () => {
-      const promptText = chip.getAttribute('data-copy');
-      if (promptText) {
-        copiarAlPortapapeles(promptText);
-      }
-    });
-  });
-
-  // Asignar eventos a los botones "Preguntar a PentaSilito" dentro de las tarjetas
-  document.querySelectorAll('.btn-ask-bot').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const promptText = btn.getAttribute('data-prompt');
-      if (promptText) {
-        copiarAlPortapapeles(promptText);
-      }
-    });
-  });
-
-  // 4. Navegación rápida hacia el análisis del Plan Free
-  if (btnVerPlanFree && planAnalysisSection) {
-    btnVerPlanFree.addEventListener('click', () => {
-      planAnalysisSection.scrollIntoView({ behavior: 'smooth' });
-      planAnalysisSection.style.transition = 'box-shadow 0.3s ease';
-      planAnalysisSection.style.boxShadow = '0 0 0 3px #F59E0B';
-      setTimeout(() => {
-        planAnalysisSection.style.boxShadow = '';
-      }, 1800);
-    });
-  }
-
-  // 5. Tabs de Categoría de Bolsas (Activas, Abiertas, Calidad)
-  const tabs = document.querySelectorAll('.cat-tab');
-  tabs.forEach(tab => {
-    tab.addEventListener('click', () => {
-      tabs.forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
-      mostrarToast(`Filtrando: ${tab.textContent}`);
-    });
-  });
-
-  // 6. Botones de filtro de ejemplo
-  const btnFiltrar = document.getElementById('btnFiltrar');
-  const btnLimpiarFiltro = document.getElementById('btnLimpiarFiltro');
-  const filtroInput = document.getElementById('filtroBolsas');
-
-  if (btnFiltrar && filtroInput) {
-    btnFiltrar.addEventListener('click', () => {
-      mostrarToast(`Búsqueda aplicada: "${filtroInput.value}"`);
-    });
-  }
-
-  if (btnLimpiarFiltro && filtroInput) {
-    btnLimpiarFiltro.addEventListener('click', () => {
-      filtroInput.value = '';
-      mostrarToast('Filtro de búsqueda restablecido.');
-    });
-  }
+  // Carga inicial automática con el ID por defecto
+  aplicarCarga();
 });
